@@ -1,0 +1,872 @@
+/* ==========================
+   Smart Wardrobe – Zara Style
+   Minimalista, elegante, limpio
+   Márgenes generosos y tipografía mejorada
+   ========================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --zara-black: #000000;
+  --zara-white: #ffffff;
+  --zara-gray-50: #fafafa;
+  --zara-gray-100: #f5f5f5;
+  --zara-gray-200: #e5e5e5;
+  --zara-gray-300: #d4d4d4;
+  --zara-gray-400: #a3a3a3;
+  --zara-gray-500: #737373;
+  --zara-gray-600: #525252;
+  --zara-gray-700: #404040;
+  --zara-gray-800: #262626;
+  --zara-gray-900: #171717;
+  --zara-text: #1a1a1a;
+  --zara-text-light: #666666;
+  --zara-border: #e5e5e5;
+  --zara-hover: #f5f5f5;
+  
+  /* Márgenes sociales generosos */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 32px;
+  --spacing-lg: 48px;
+  --spacing-xl: 64px;
+  --spacing-xxl: 96px;
+}
+
+/* ===== App background ===== */
+
+.app-bg {
+  min-height: 100vh;
+  padding-bottom: var(--spacing-xxl);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--zara-text);
+  background: var(--zara-white);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--zara-white) !important;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+/* ===== Typography mejorada ===== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--zara-text);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-md);
+}
+
+h1 {
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+}
+
+h3 {
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+h4 {
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+h5 {
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+h6 {
+  font-size: clamp(16px, 1.8vw, 20px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--zara-text);
+  margin-bottom: var(--spacing-md);
+  font-weight: 300;
+}
+
+.text-muted {
+  color: var(--zara-text-light) !important;
+  font-weight: 300;
+}
+
+/* ===== Navbar ===== */
+
+.navbar {
+  background: var(--zara-white) !important;
+  border-bottom: 1px solid var(--zara-border);
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.navbar .container-fluid {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--spacing-md) var(--spacing-xl);
+}
+
+.navbar-brand {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--zara-black) !important;
+  text-transform: uppercase;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.navbar .nav-link {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--zara-text) !important;
+  text-transform: uppercase;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 0 var(--spacing-xs);
+  transition: color 0.2s ease;
+  border-bottom: 2px solid transparent;
+  line-height: 1.5;
+}
+
+.navbar .nav-link:hover {
+  color: var(--zara-black) !important;
+  border-bottom-color: var(--zara-black);
+}
+
+.navbar .nav-link.active {
+  color: var(--zara-black) !important;
+  border-bottom-color: var(--zara-black);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ===== Hero / Home ===== */
+
+.home-hero {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--spacing-xxl) var(--spacing-xl) var(--spacing-xl);
+}
+
+.home-kicker {
+  font-size: 12px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--zara-text-light);
+  font-weight: 500;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.5;
+}
+
+.home-title {
+  font-size: clamp(48px, 6vw, 72px);
+  line-height: 1.05;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: var(--zara-black);
+  margin-bottom: var(--spacing-lg);
+  max-width: 800px;
+}
+
+.home-subtitle {
+  font-size: 18px;
+  line-height: 1.75;
+  max-width: 700px;
+  color: var(--zara-text-light);
+  font-weight: 300;
+  margin-bottom: var(--spacing-xl);
+}
+
+.home-note {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--zara-text-light);
+  font-weight: 400;
+  margin-top: var(--spacing-md);
+}
+
+.home-cta-btn {
+  border-radius: 0 !important;
+  padding: 16px 48px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+  border: 1px solid var(--zara-black);
+  background: var(--zara-white);
+  color: var(--zara-black);
+  box-shadow: none;
+  transition: all 0.25s ease;
+  line-height: 1.5;
+}
+
+.home-cta-btn:hover {
+  background: var(--zara-black);
+  color: var(--zara-white);
+  transform: none;
+  box-shadow: none;
+}
+
+.home-cta-btn::after {
+  display: none;
+}
+
+.home-hero-card {
+  border-radius: 0;
+  background: var(--zara-white);
+  border: 1px solid var(--zara-border);
+  box-shadow: none;
+  backdrop-filter: none;
+  color: var(--zara-text);
+  padding: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+}
+
+.home-hero-card .home-card-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--zara-text);
+  font-weight: 500;
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.home-card-list {
+  padding-left: 0;
+  font-size: 16px;
+  color: var(--zara-text);
+  line-height: 2;
+  list-style: none;
+  margin-bottom: var(--spacing-md);
+}
+
+.home-card-list li {
+  position: relative;
+  padding-left: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  font-weight: 300;
+}
+
+.home-card-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--zara-text-light);
+  font-weight: 400;
+}
+
+.home-card-foot {
+  font-size: 14px;
+  color: var(--zara-text-light);
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+/* ===== Feature cards / steps ===== */
+
+.feature-card,
+.steps-card,
+.card-controls,
+.outfit-card,
+.prenda-card {
+  border-radius: 0 !important;
+  border: 1px solid var(--zara-border);
+  background: var(--zara-white);
+  backdrop-filter: none;
+  box-shadow: none;
+  color: var(--zara-text);
+  transition: box-shadow 0.2s ease;
+  margin-bottom: var(--spacing-lg);
+}
+
+.feature-card:hover,
+.steps-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.feature-card .card-body,
+.steps-card .card-body {
+  padding: var(--spacing-xl);
+}
+
+.feature-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--zara-text);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.4;
+}
+
+.feature-text,
+.steps-list {
+  font-size: 16px;
+  color: var(--zara-text-light);
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+.steps-list {
+  padding-left: 0;
+  list-style: none;
+  margin-bottom: 0;
+}
+
+.steps-list li {
+  position: relative;
+  padding-left: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+.steps-list li::before {
+  content: counter(list-item);
+  counter-increment: list-item;
+  position: absolute;
+  left: 0;
+  font-weight: 500;
+  color: var(--zara-text);
+  font-size: 18px;
+}
+
+.steps-list {
+  counter-reset: list-item;
+}
+
+/* ===== Forms & controls (config) ===== */
+
+.card-controls {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--spacing-xxl) var(--spacing-xl);
+  background: var(--zara-white);
+  border: 1px solid var(--zara-border);
+  box-shadow: none;
+}
+
+.card-controls h2 {
+  font-size: clamp(36px, 4vw, 48px);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: var(--zara-black);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.2;
+}
+
+.card-controls p {
+  font-size: 16px;
+  color: var(--zara-text-light);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.75;
+  font-weight: 300;
+}
+
+.card-controls .row {
+  margin-bottom: var(--spacing-lg);
+}
+
+label,
+.form-label,
+.dbc label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--zara-text);
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+input.form-control,
+textarea.form-control,
+select.form-control,
+.Select-control,
+.Select,
+.dash-dropdown .Select-control {
+  background-color: var(--zara-white) !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--zara-border) !important;
+  color: var(--zara-text) !important;
+  font-size: 16px;
+  padding: 14px 20px;
+  box-shadow: none;
+  transition: border-color 0.2s ease;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+input.form-control:focus,
+textarea.form-control:focus,
+select.form-control:focus,
+.Select.is-focused .Select-control,
+.dash-dropdown .Select-control:focus-within {
+  border-color: var(--zara-black) !important;
+  box-shadow: none;
+  background-color: var(--zara-white) !important;
+  outline: none;
+}
+
+.dash-dropdown .Select-menu-outer {
+  background-color: var(--zara-white);
+  border-radius: 0;
+  border: 1px solid var(--zara-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dash-dropdown .VirtualizedSelectOption {
+  font-size: 15px;
+  padding: 14px 20px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.dash-dropdown .VirtualizedSelectOption:hover {
+  background-color: var(--zara-hover);
+}
+
+/* Date picker */
+
+.DateInput_input {
+  background-color: var(--zara-white) !important;
+  color: var(--zara-text) !important;
+  font-size: 16px;
+  padding: 14px 20px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.DateInput,
+.SingleDatePickerInput,
+.DateInput_input {
+  border-radius: 0 !important;
+  border: 1px solid var(--zara-border) !important;
+}
+
+.SingleDatePickerInput {
+  background-color: var(--zara-white);
+}
+
+/* Main call-to-action in config */
+
+#btn {
+  border-radius: 0;
+  padding: 16px 48px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid var(--zara-black);
+  background: var(--zara-white);
+  color: var(--zara-black);
+  box-shadow: none;
+  transition: all 0.25s ease;
+  line-height: 1.5;
+}
+
+#btn:hover {
+  background: var(--zara-black);
+  color: var(--zara-white);
+  transform: none;
+  filter: none;
+}
+
+/* ===== Tabs / resultados ===== */
+
+.dash-tabs {
+  border-bottom: 1px solid var(--zara-border);
+  margin-bottom: var(--spacing-xl);
+}
+
+.dash-tab {
+  padding: var(--spacing-md) var(--spacing-lg) !important;
+  border-radius: 0 !important;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  color: var(--zara-text-light);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  line-height: 1.5;
+}
+
+.dash-tab:hover {
+  color: var(--zara-black);
+  background: transparent;
+}
+
+.dash-tab--selected {
+  color: var(--zara-black) !important;
+  background: transparent !important;
+  border-bottom-color: var(--zara-black) !important;
+  border: none !important;
+  border-bottom: 2px solid var(--zara-black) !important;
+}
+
+.loading-caption {
+  font-size: 12px;
+  color: var(--zara-text-light);
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+}
+
+/* ===== Outfit cards & images ===== */
+
+.outfit-header {
+  border-bottom: 1px solid var(--zara-border);
+  background: var(--zara-white);
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.outfit-header .text-muted {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: var(--spacing-xs);
+  font-weight: 400;
+}
+
+.outfit-body {
+  padding: var(--spacing-xl);
+}
+
+.prenda-card {
+  overflow: hidden;
+  border: 1px solid var(--zara-border);
+  transition: box-shadow 0.2s ease;
+  margin-bottom: var(--spacing-lg);
+}
+
+.prenda-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.prenda-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: var(--zara-white);
+  color: var(--zara-text);
+  border-bottom: 1px solid var(--zara-border);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.outfit-image {
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  background-color: var(--zara-gray-50);
+  width: 100%;
+  height: auto;
+}
+
+.no-image {
+  font-size: 12px;
+  padding: var(--spacing-xxl) var(--spacing-lg);
+  border-radius: 0;
+  background: var(--zara-gray-50);
+  color: var(--zara-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+}
+
+.prenda-meta {
+  font-size: 13px;
+  color: var(--zara-text-light);
+  padding: var(--spacing-lg);
+  line-height: 1.9;
+  font-weight: 300;
+}
+
+.prenda-meta strong {
+  color: var(--zara-text);
+  font-weight: 500;
+}
+
+/* ===== Checklist / radio / cart ===== */
+
+#selected_outfit,
+#selected_outers {
+  font-size: 15px;
+  color: var(--zara-text);
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+#selected_outfit label,
+#selected_outers label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 300;
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.75;
+}
+
+#btn_add_cart,
+#btn_checkout {
+  border-radius: 0;
+  padding: 16px 48px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid var(--zara-black);
+  background: var(--zara-white);
+  color: var(--zara-black);
+  box-shadow: none;
+  transition: all 0.25s ease;
+  line-height: 1.5;
+}
+
+#btn_add_cart:hover,
+#btn_checkout:hover {
+  background: var(--zara-black);
+  color: var(--zara-white);
+  transform: none;
+  filter: none;
+}
+
+#cart-message,
+#checkout-message {
+  font-weight: 300;
+  font-size: 16px;
+  color: var(--zara-text);
+  line-height: 1.75;
+}
+
+/* ===== Analytics / graphs ===== */
+
+.dash-graph {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--zara-border);
+  background: var(--zara-white);
+  margin-bottom: var(--spacing-lg);
+  width: 100%;
+  position: relative;
+}
+
+.dash-graph > div {
+  width: 100% !important;
+}
+
+.js-plotly-plot {
+  width: 100% !important;
+  position: relative;
+}
+
+.js-plotly-plot .plotly {
+  width: 100% !important;
+}
+
+.card {
+  border: 1px solid var(--zara-border);
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-body {
+  padding: var(--spacing-xl);
+}
+
+/* ===== Radio items and checklists ===== */
+
+.dash-radioitems,
+.dash-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: var(--spacing-lg) 0;
+}
+
+.dash-radioitems label,
+.dash-checklist label {
+  font-size: 15px;
+  font-weight: 300;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--zara-text);
+  line-height: 1.75;
+}
+
+/* ===== Container spacing ===== */
+
+.container,
+.container-fluid {
+  padding-left: var(--spacing-xl);
+  padding-right: var(--spacing-xl);
+}
+
+.row {
+  margin-left: calc(-1 * var(--spacing-md));
+  margin-right: calc(-1 * var(--spacing-md));
+}
+
+.row > * {
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* ===== Responsiveness ===== */
+
+@media (max-width: 991.98px) {
+  .navbar .container-fluid {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .home-hero {
+    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  }
+
+  .card-controls {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+  
+  .container,
+  .container-fluid {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .home-hero {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .card-controls {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .navbar .container-fluid {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .navbar-brand {
+    font-size: 16px;
+  }
+
+  .navbar .nav-link {
+    font-size: 11px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .container,
+  .container-fluid {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+}
+
+/* ===== Additional Zara-style touches ===== */
+
+hr {
+  border-top: 1px solid var(--zara-border);
+  margin: var(--spacing-xl) 0;
+}
+
+/* Remove all rounded corners for Zara aesthetic */
+* {
+  border-radius: 0 !important;
+}
+
+/* But allow specific exceptions if needed for images */
+.outfit-image {
+  border-radius: 0 !important;
+}
+
+/* Clean, minimal scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--zara-white);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--zara-gray-300);
+  border: none;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--zara-gray-400);
+}
+
+/* Mejoras de legibilidad */
+strong, b {
+  font-weight: 500;
+}
+
+a {
+  color: var(--zara-text);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--zara-black);
+}
+
+/* Espaciado adicional para secciones */
+.mb-3 {
+  margin-bottom: var(--spacing-lg) !important;
+}
+
+.mb-4 {
+  margin-bottom: var(--spacing-xl) !important;
+}
+
+.mb-5 {
+  margin-bottom: var(--spacing-xxl) !important;
+}
+
+.mt-3 {
+  margin-top: var(--spacing-lg) !important;
+}
+
+.mt-4 {
+  margin-top: var(--spacing-xl) !important;
+}
+
+.mt-5 {
+  margin-top: var(--spacing-xxl) !important;
+}
+

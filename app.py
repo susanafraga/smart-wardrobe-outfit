@@ -23,6 +23,37 @@ app = Dash(
 )
 app.title = "Smart Wardrobe"
 
+# Configurar Flask para servir archivos estáticos desde static/
+import os
+from flask import send_from_directory
+
+@app.server.route('/static/<path:path>')
+def serve_static(path):
+    static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    return send_from_directory(static_folder, path)
+
+# Cargar CSS personalizado desde static/
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <link rel="stylesheet" href="/static/custom.css">
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
 
 # ======================= helpers de modelo =======================
 
