@@ -18,7 +18,7 @@ df = load_articles(CSV_PATH)
 
 app = Dash(
     __name__,
-    external_stylesheets=[dbc.themes.LUX],
+    external_stylesheets=[dbc.themes.BOOTSTRAP],  # Tema minimalista estilo Zara
     suppress_callback_exceptions=True,
 )
 app.title = "Smart Wardrobe"

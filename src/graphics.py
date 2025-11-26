@@ -60,8 +60,10 @@ def _build_scores_chart(df: pd.DataFrame):
         xaxis_title="Outfit",
         yaxis_title="Score (más alto = mejor ajuste)",
         margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_abrigo_chart(df: pd.DataFrame, temp_c: float):
@@ -107,6 +109,8 @@ def _build_abrigo_chart(df: pd.DataFrame, temp_c: float):
             ticktext=["Ligero", "Medio", "Abrigado"],
         ),
         margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
         shapes=[
             dict(
                 type="line",
@@ -127,7 +131,7 @@ def _build_abrigo_chart(df: pd.DataFrame, temp_c: float):
             )
         ],
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_colors_chart(df: pd.DataFrame):
@@ -156,8 +160,10 @@ def _build_colors_chart(df: pd.DataFrame):
     fig.update_layout(
         title="Equilibrio de colores en los outfits",
         margin=dict(t=60, l=20, r=20, b=40),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_slot_coverage_chart(df: pd.DataFrame):
@@ -181,8 +187,10 @@ def _build_slot_coverage_chart(df: pd.DataFrame):
     fig.update_layout(
         title="Cobertura de slots en los outfits (cuántos outfits incluyen cada tipo)",
         margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_item_reuse_chart(df: pd.DataFrame, top_n: int = 10):
@@ -211,8 +219,10 @@ def _build_item_reuse_chart(df: pd.DataFrame, top_n: int = 10):
         title=f"Top {top_n} prendas más reutilizadas entre los outfits",
         xaxis_tickangle=-45,
         margin=dict(t=60, l=40, r=20, b=80),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _candidates_to_df(rec_data: dict) -> pd.DataFrame:
@@ -245,8 +255,13 @@ def _build_candidates_score_hist(df: pd.DataFrame):
         return html.Div("No hay datos de candidatos suficientes para el histograma.", className="text-muted")
 
     fig = px.histogram(df, x="candidate_score", nbins=20, color="slot", marginal="rug")
-    fig.update_layout(title="Distribución de score entre candidatos (por slot)", margin=dict(t=60, l=40, r=20, b=40))
-    return dcc.Graph(figure=fig)
+    fig.update_layout(
+        title="Distribución de score entre candidatos (por slot)",
+        margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
+    )
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_candidates_fabric_chart(df: pd.DataFrame):
@@ -258,8 +273,13 @@ def _build_candidates_fabric_chart(df: pd.DataFrame):
     df["fabric_type"] = df["fabric_type"].fillna("unknown").astype(str)
     counts = df["fabric_type"].value_counts().reset_index(name="count").rename(columns={"index": "fabric_type"})
     fig = px.pie(counts, names="fabric_type", values="count", hole=0.35)
-    fig.update_layout(title="Distribución de tejidos en el pool de candidatos", margin=dict(t=60, l=20, r=20, b=40))
-    return dcc.Graph(figure=fig)
+    fig.update_layout(
+        title="Distribución de tejidos en el pool de candidatos",
+        margin=dict(t=60, l=20, r=20, b=40),
+        height=400,
+        autosize=False,
+    )
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _build_candidate_slot_coverage(df: pd.DataFrame):
@@ -284,8 +304,10 @@ def _build_candidate_slot_coverage(df: pd.DataFrame):
     fig.update_layout(
         title="Cobertura de slots en el pool de candidatos (nº candidatos por slot)",
         margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def build_analytics_layout(rec_data: dict):

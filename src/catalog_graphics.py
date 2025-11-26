@@ -39,8 +39,10 @@ def _cluster_size_chart(df: pd.DataFrame):
     fig.update_layout(
         title="Tamaño de cada cluster de estilo",
         margin=dict(t=60, l=40, r=20, b=40),
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _cluster_segment_chart(df: pd.DataFrame):
@@ -70,8 +72,10 @@ def _cluster_segment_chart(df: pd.DataFrame):
         title="Segmento (mujer/hombre/niño) por cluster de estilo",
         margin=dict(t=60, l=40, r=20, b=40),
         legend_title="Segmento",
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _cluster_formality_chart(df: pd.DataFrame):
@@ -101,8 +105,10 @@ def _cluster_formality_chart(df: pd.DataFrame):
         title="Nivel de formalidad por cluster de estilo",
         margin=dict(t=60, l=40, r=20, b=40),
         legend_title="Formalidad",
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _cluster_temporada_chart(df: pd.DataFrame):
@@ -132,8 +138,10 @@ def _cluster_temporada_chart(df: pd.DataFrame):
         title="Temporada dominante por cluster de estilo",
         margin=dict(t=60, l=40, r=20, b=40),
         legend_title="Temporada",
+        height=400,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
 
 
 def _cluster_slot_chart(df: pd.DataFrame):
@@ -163,8 +171,10 @@ def _cluster_slot_chart(df: pd.DataFrame):
         title="Tipo de prenda por cluster (top, bottom, dress, shoes…)",
         margin=dict(t=60, l=40, r=20, b=40),
         legend_title="Slot",
+        height=450,
+        autosize=False,
     )
-    return dcc.Graph(figure=fig)
+    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '450px', 'width': '100%'})
 
 
 def _cluster_examples(df: pd.DataFrame, max_per_cluster: int = 4):
