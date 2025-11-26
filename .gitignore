@@ -1,0 +1,9 @@
+/assets/
+
+*.zip
+*.docx
+*.pdf
+*.ipynb
+2_Introduccion_a_Dash.py
+
+__pycache__
