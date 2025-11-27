@@ -58,12 +58,12 @@ app.index_string = '''
 # ======================= helpers de modelo =======================
 
 EVENT_OPTIONS = [
-    {"label": "Plan casual (turismo, recados…)", "value": "casual_day"},
-    {"label": "Trabajo / oficina",               "value": "work"},
-    {"label": "Cena / evento semi-formal",       "value": "semi_formal"},
-    {"label": "Boda / ceremonia formal",         "value": "wedding"},
-    {"label": "Fiesta / noche",                  "value": "party"},
-    {"label": "Plan deportivo / aire libre",     "value": "sport"},
+    {"label": "Casual", "value": "casual"},
+    {"label": "Oficina", "value": "office"},
+    {"label": "Noche", "value": "night"},
+    {"label": "Deporte", "value": "sport"},
+    {"label": "Cita / Restaurante", "value": "date"},
+    {"label": "Evento formal", "value": "formal"},
 ]
 
 SEGMENT_OPTIONS = [
@@ -76,14 +76,65 @@ SEGMENT_OPTIONS = [
 
 def map_event_to_formality(event_type):
     mapping = {
-        "casual_day": "casual",
-        "work": "intermedio",
-        "semi_formal": "intermedio",
-        "wedding": "formal",
-        "party": "intermedio",
+        "casual": "casual",
+        "office": "formal",
+        "night": "intermedio",
         "sport": "casual",
+        "date": "formal",
+        "formal": "formal",
     }
     return mapping.get(event_type, "intermedio")
+
+
+def get_event_preferences(event_type):
+    """
+    Devuelve preferencias y restricciones específicas para cada tipo de evento.
+    Incluye colores preferidos/evitados, tejidos preferidos/evitados, etc.
+    """
+    preferences = {
+        "casual": {
+            "preferred_colors": [],  # Sin restricciones
+            "avoid_colors": [],
+            "preferred_fabrics": ["cotton", "denim", "linen"],
+            "avoid_fabrics": [],
+        },
+        "office": {
+            "preferred_colors": ["black", "white", "grey", "gray", "navy", "brown", "beige"],  # Colores neutros
+            "avoid_colors": ["red", "pink", "orange", "yellow", "green", "purple"],  # Evitar colores muy llamativos
+            "preferred_fabrics": ["cotton", "wool", "polyester", "viscose"],
+            "avoid_fabrics": ["denim", "leather", "suede"],  # Evitar tejidos muy casuales
+        },
+        "night": {
+            "preferred_colors": ["black", "dark", "navy"],  # Preferir negro y colores oscuros
+            "avoid_colors": [],
+            "preferred_fabrics": ["silk", "satin", "velvet", "lace", "cotton"],
+            "avoid_fabrics": [],
+        },
+        "sport": {
+            "preferred_colors": [],
+            "avoid_colors": [],
+            "preferred_fabrics": ["cotton", "polyester", "elastane"],
+            "avoid_fabrics": ["wool", "silk", "velvet", "lace"],
+        },
+        "date": {
+            "preferred_colors": ["black", "white", "navy", "red", "pink"],  # Colores elegantes
+            "avoid_colors": [],
+            "preferred_fabrics": ["silk", "satin", "cotton", "wool", "lace"],
+            "avoid_fabrics": ["denim"],  # Evitar denim en citas formales
+        },
+        "formal": {
+            "preferred_colors": ["black", "white", "navy", "grey", "gray", "brown"],
+            "avoid_colors": ["yellow", "orange", "green"],  # Evitar colores muy informales
+            "preferred_fabrics": ["silk", "satin", "wool", "velvet", "lace", "cotton"],
+            "avoid_fabrics": ["denim"],
+        },
+    }
+    return preferences.get(event_type, {
+        "preferred_colors": [],
+        "avoid_colors": [],
+        "preferred_fabrics": [],
+        "avoid_fabrics": [],
+    })
 
 
 def filter_by_profile(df_base, segment):
@@ -120,10 +171,10 @@ def navbar():
                     [
                         dbc.NavLink("Inicio", href="/", active="exact"),
                         dbc.NavLink(
-                            "Configurar outfit", href="/config", active="exact", className="ms-3"
+                            "Catálogo", href="/catalog", active="exact", className="ms-3"
                         ),
-                        dbc.NavLink(  # <<--- NUEVO
-                            "Catálogo y estilos", href="/catalog", active="exact", className="ms-3"
+                        dbc.NavLink(
+                            "Configurar outfit", href="/config", active="exact", className="ms-3"
                         ),
                         dbc.NavItem(
                             dbc.NavLink(
@@ -181,34 +232,6 @@ def layout_home():
                     ],
                     md=7,
                     className="mb-4 mb-md-0",
-                ),
-                # Columna derecha: tarjetita resumen
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody(
-                            [
-                                html.H6("Ideal para", className="home-card-title mb-3"),
-                                html.Ul(
-                                    [
-                                        html.Li("Bodas, cenas y eventos especiales."),
-                                        html.Li("Entrevistas y días clave en la oficina."),
-                                        html.Li("Escapadas de finde y viajes con maleta pequeña."),
-                                    ],
-                                    className="home-card-list",
-                                ),
-                                html.Hr(),
-                                html.Div(
-                                    [
-                                        
-                                        html.Span("En menos de 30 segundos tienes 3 propuestas completas."),
-                                    ],
-                                    className="home-card-foot",
-                                ),
-                            ]
-                        ),
-                        className="home-hero-card",
-                    ),
-                    md=5,
                 ),
             ],
             className="align-items-center",
@@ -327,9 +350,11 @@ def layout_config():
                                     placeholder="Madrid, Barcelona…",
                                     value="Madrid",
                                     className="form-control",
+                                    style={"width": "100%"},
                                 ),
                             ],
                             md=3,
+                            style={"min-width": "200px"},
                         ),
                         dbc.Col(
                             [
@@ -339,9 +364,11 @@ def layout_config():
                                     date=date.today(),
                                     display_format="DD/MM/YYYY",
                                     className="w-100",
+                                    style={"width": "100%"},
                                 ),
                             ],
                             md=3,
+                            style={"min-width": "200px"},
                         ),
                         dbc.Col(
                             [
@@ -349,11 +376,13 @@ def layout_config():
                                 dcc.Dropdown(
                                     id="event_type",
                                     options=EVENT_OPTIONS,
-                                    value="casual_day",
+                                    value="casual",
                                     clearable=False,
+                                    style={"width": "100%"},
                                 ),
                             ],
                             md=3,
+                            style={"min-width": "200px"},
                         ),
                         dbc.Col(
                             [
@@ -363,9 +392,11 @@ def layout_config():
                                     options=SEGMENT_OPTIONS,
                                     value="women",
                                     clearable=False,
+                                    style={"width": "100%"},
                                 ),
                             ],
                             md=3,
+                            style={"min-width": "200px"},
                         ),
                     ],
                     className="mb-3",
@@ -377,10 +408,6 @@ def layout_config():
                             id="btn",
                             color="dark",
                             className="mt-2 px-4",
-                        ),
-                        html.Div(
-                            "La previsión meteorológica se obtiene automáticamente mediante la API de Open-Meteo.",
-                            className="text-muted fst-italic mt-2",
                         ),
                     ],
                     className="text-center",
@@ -403,15 +430,10 @@ def layout_config():
             ),
             dcc.Loading(
                 id="loading-results",
-                type="circle",
-                children=html.Div(
-                    [
-                        html.Div(id="resultados"),
-                        html.Div("Updating…", className="loading-caption"),
-                    ],
-                    style={"position": "relative"},
-                ),
+                type="default",
+                children=html.Div(id="resultados"),
                 fullscreen=False,
+                style={"minHeight": "400px"},
             ),
             html.Div(id="cart-message", className="mt-3 text-center text-success"),
         ]
@@ -622,7 +644,10 @@ def on_recomendar(_, city, picked_date, event_type, segment):
     if df_used.empty:
         return None
 
-    res = recomendar_outfits(df_used, temp_c, formalidad, rainy, n_outfits=3)
+    # Obtener preferencias del evento
+    event_preferences = get_event_preferences(event_type)
+    
+    res = recomendar_outfits(df_used, temp_c, formalidad, rainy, n_outfits=3, event_preferences=event_preferences)
 
     res["meta"] = {
         "temp_c": temp_c,

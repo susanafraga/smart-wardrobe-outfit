@@ -30,7 +30,7 @@ def load_articles(csv_path: str) -> pd.DataFrame:
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"No se encuentra el archivo: {csv_path}")
 
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, low_memory=False)
 
     if "id" not in df.columns:
         raise ValueError("El CSV debe tener columna 'id'.")

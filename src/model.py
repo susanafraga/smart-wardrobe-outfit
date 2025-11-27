@@ -1,5 +1,6 @@
 # src/model.py
 import pandas as pd
+import numpy as np
 
 FORMAL_MAP = {"casual": 1, "intermedio": 2, "formal": 3}
 NEUTRAL_COLORS = {"black", "white", "grey", "gray", "beige", "brown", "other", "multi", "silver"}
@@ -35,10 +36,121 @@ def _abrigo_score(temp_c, nivel_abrigo):
     return 1.0 / (1.0 + diff)
 
 
-def _score_prenda(row, temp_c, formalidad_obj):
+def _cluster_coherence_score(items):
     """
-    Score de una prenda teniendo en cuenta formalidad, nivel de abrigo y
-    calidad de descripción (como proxy de “info disponible”).
+    Calcula un bonus de coherencia basado en si las prendas pertenecen al mismo cluster.
+    Si todas las prendas están en el mismo cluster, hay un bonus significativo.
+    Si hay 2 clusters diferentes, un bonus menor.
+    Si hay 3+ clusters, sin bonus (o pequeño penalty).
+    """
+    if not items:
+        return 1.0
+    
+    clusters = []
+    for item in items:
+        cluster = item.get("style_cluster")
+        if cluster is not None and not pd.isna(cluster):
+            clusters.append(int(cluster))
+    
+    if not clusters:
+        return 1.0  # Sin información de cluster, sin bonus
+    
+    unique_clusters = len(set(clusters))
+    total_items = len(clusters)
+    
+    if unique_clusters == 1:
+        # Todas las prendas del mismo cluster -> máximo bonus
+        return 1.20  # 20% bonus por coherencia de estilo
+    elif unique_clusters == 2 and total_items >= 3:
+        # 2 clusters en un outfit de 3+ prendas -> bonus moderado
+        return 1.10  # 10% bonus
+    elif unique_clusters == 2:
+        # 2 clusters en outfit pequeño -> pequeño bonus
+        return 1.05  # 5% bonus
+    else:
+        # 3+ clusters -> sin bonus (outfit muy mezclado)
+        return 0.95  # Pequeño penalty por falta de coherencia
+
+
+def _cluster_match_score(items, target_cluster=None):
+    """
+    Bonus adicional si las prendas coinciden con un cluster objetivo.
+    Útil para cuando el usuario quiere un estilo específico.
+    """
+    if target_cluster is None:
+        return 1.0
+    
+    if not items:
+        return 1.0
+    
+    matches = 0
+    for item in items:
+        cluster = item.get("style_cluster")
+        if cluster is not None and not pd.isna(cluster) and int(cluster) == int(target_cluster):
+            matches += 1
+    
+    if matches == 0:
+        return 1.0
+    
+    # Bonus proporcional al número de prendas que coinciden
+    match_ratio = matches / len(items)
+    return 1.0 + (match_ratio * 0.15)  # Hasta 15% bonus si todas coinciden
+
+
+def _event_color_score(color, event_preferences):
+    """
+    Calcula un bonus/penalty basado en las preferencias de color del evento.
+    """
+    if not event_preferences:
+        return 1.0
+    
+    color = str(color or "").strip().lower()
+    if not color:
+        return 1.0
+    
+    preferred_colors = event_preferences.get("preferred_colors", [])
+    avoid_colors = event_preferences.get("avoid_colors", [])
+    
+    # Bonus si el color está en preferidos
+    if preferred_colors and any(pref in color for pref in preferred_colors):
+        return 1.15  # 15% bonus
+    
+    # Penalty si el color está en evitados
+    if avoid_colors and any(avoid in color for avoid in avoid_colors):
+        return 0.75  # 25% penalty
+    
+    return 1.0
+
+
+def _event_fabric_score(fabric, event_preferences):
+    """
+    Calcula un bonus/penalty basado en las preferencias de tejido del evento.
+    """
+    if not event_preferences:
+        return 1.0
+    
+    fabric = str(fabric or "").strip().lower()
+    if not fabric:
+        return 1.0
+    
+    preferred_fabrics = event_preferences.get("preferred_fabrics", [])
+    avoid_fabrics = event_preferences.get("avoid_fabrics", [])
+    
+    # Bonus si el tejido está en preferidos
+    if preferred_fabrics and any(pref in fabric for pref in preferred_fabrics):
+        return 1.12  # 12% bonus
+    
+    # Penalty si el tejido está en evitados
+    if avoid_fabrics and any(avoid in fabric for avoid in avoid_fabrics):
+        return 0.80  # 20% penalty
+    
+    return 1.0
+
+
+def _score_prenda(row, temp_c, formalidad_obj, event_preferences=None):
+    """
+    Score de una prenda teniendo en cuenta formalidad, nivel de abrigo,
+    calidad de descripción y preferencias del evento.
     """
     f = _formal_score(formalidad_obj, row.get("formalidad", "intermedio"))
     a = _abrigo_score(temp_c, row.get("nivel_abrigo", 2))
@@ -58,6 +170,20 @@ def _score_prenda(row, temp_c, formalidad_obj):
     color = str(row.get("color_base", "") or "").strip().lower()
     if color == "":
         base_score *= 0.92
+    
+    # Aplicar preferencias del evento (color y tejido)
+    if event_preferences:
+        color_score = _event_color_score(color, event_preferences)
+        fabric = str(row.get("fabric_type", "") or "").strip().lower()
+        if not fabric:
+            # Intentar extraer de descripción
+            for k in ["linen", "lino", "satin", "silk", "lace", "chiffon", "wool", "denim", "velvet", "leather", "suede", "cotton", "polyester"]:
+                if k in desc:
+                    fabric = k if k != "lino" else "linen"
+                    break
+        
+        fabric_score = _event_fabric_score(fabric, event_preferences)
+        base_score *= color_score * fabric_score
 
     return float(base_score)
 
@@ -86,33 +212,34 @@ def _color_combo_score(items):
 
 # ========= helpers de selección =========
 
-def _sorted_candidates(df, slot, temp_c, formalidad_obj):
+def _sorted_candidates(df, slot, temp_c, formalidad_obj, target_cluster=None, event_preferences=None):
+    """
+    Candidatos ordenados por score, con bonus si pertenecen al cluster objetivo.
+    """
     cand = df[df["slot"] == slot].copy()
     if cand.empty:
         return cand
+    
     cand["__score__"] = cand.apply(
-        lambda r: _score_prenda(r, temp_c, formalidad_obj), axis=1
+        lambda r: _score_prenda(r, temp_c, formalidad_obj, event_preferences), axis=1
     )
+    
+    # Bonus si hay cluster objetivo y la prenda pertenece a ese cluster
+    if target_cluster is not None and "style_cluster" in cand.columns:
+        cluster_mask = cand["style_cluster"].notna() & (cand["style_cluster"] == target_cluster)
+        cand.loc[cluster_mask, "__score__"] *= 1.15  # 15% bonus por coincidencia de cluster
+    
     return cand.sort_values("__score__", ascending=False)
-
-
-def _pick_best_not_used(df_slot, used_ids):
-    if df_slot.empty:
-        return None
-    for _, row in df_slot.iterrows():
-        if row["id"] not in used_ids:
-            return row
-    return None
 
 
 # ========= construcción de outfits =========
 
-def _build_dress_outfit(df, temp_c, formalidad_obj, used_ids):
+def _build_dress_outfit(df, temp_c, formalidad_obj, used_ids, target_cluster=None, event_preferences=None):
     """
     Vestido + zapatos (sin abrigos ni accesorios).
     """
-    dresses = _sorted_candidates(df, "dress", temp_c, formalidad_obj)
-    shoes   = _sorted_candidates(df, "shoes", temp_c, formalidad_obj)
+    dresses = _sorted_candidates(df, "dress", temp_c, formalidad_obj, target_cluster, event_preferences)
+    shoes   = _sorted_candidates(df, "shoes", temp_c, formalidad_obj, target_cluster, event_preferences)
 
     dress = _pick_best_not_used(dresses, used_ids)
     shoe  = _pick_best_not_used(shoes, used_ids)
@@ -123,9 +250,11 @@ def _build_dress_outfit(df, temp_c, formalidad_obj, used_ids):
     items = [dress, shoe]
     used_ids.update([dress["id"], shoe["id"]])
 
-    base = sum(_score_prenda(r, temp_c, formalidad_obj) for r in items) / len(items)
+    base = sum(_score_prenda(r, temp_c, formalidad_obj, event_preferences) for r in items) / len(items)
     color_factor = _color_combo_score(items)
-    score = base * color_factor
+    cluster_coherence = _cluster_coherence_score(items)
+    cluster_match = _cluster_match_score(items, target_cluster)
+    score = base * color_factor * cluster_coherence * cluster_match
 
     return {
         "type": "dress_outfit",
@@ -134,13 +263,13 @@ def _build_dress_outfit(df, temp_c, formalidad_obj, used_ids):
     }
 
 
-def _build_separates_outfit(df, temp_c, formalidad_obj, used_ids):
+def _build_separates_outfit(df, temp_c, formalidad_obj, used_ids, target_cluster=None, event_preferences=None):
     """
     Parte de arriba + parte de abajo + zapatos (sin abrigos ni accesorios).
     """
-    tops    = _sorted_candidates(df, "top", temp_c, formalidad_obj)
-    bottoms = _sorted_candidates(df, "bottom", temp_c, formalidad_obj)
-    shoes   = _sorted_candidates(df, "shoes", temp_c, formalidad_obj)
+    tops    = _sorted_candidates(df, "top", temp_c, formalidad_obj, target_cluster, event_preferences)
+    bottoms = _sorted_candidates(df, "bottom", temp_c, formalidad_obj, target_cluster, event_preferences)
+    shoes   = _sorted_candidates(df, "shoes", temp_c, formalidad_obj, target_cluster, event_preferences)
 
     top    = _pick_best_not_used(tops, used_ids)
     bottom = _pick_best_not_used(bottoms, used_ids)
@@ -152,9 +281,11 @@ def _build_separates_outfit(df, temp_c, formalidad_obj, used_ids):
     items = [top, bottom, shoe]
     used_ids.update([top["id"], bottom["id"], shoe["id"]])
 
-    base = sum(_score_prenda(r, temp_c, formalidad_obj) for r in items) / len(items)
+    base = sum(_score_prenda(r, temp_c, formalidad_obj, event_preferences) for r in items) / len(items)
     color_factor = _color_combo_score(items)
-    score = base * color_factor
+    cluster_coherence = _cluster_coherence_score(items)
+    cluster_match = _cluster_match_score(items, target_cluster)
+    score = base * color_factor * cluster_coherence * cluster_match
 
     return {
         "type": "separates_outfit",
@@ -163,7 +294,16 @@ def _build_separates_outfit(df, temp_c, formalidad_obj, used_ids):
     }
 
 
-def _suggest_extras(df, slot, temp_c, formalidad_obj, rainy, max_items=3):
+def _pick_best_not_used(df_slot, used_ids):
+    if df_slot.empty:
+        return None
+    for _, row in df_slot.iterrows():
+        if row["id"] not in used_ids:
+            return row
+    return None
+
+
+def _suggest_extras(df, slot, temp_c, formalidad_obj, rainy, max_items=3, target_cluster=None, event_preferences=None):
     """
     Sugerencias de abrigos o accesorios. No se meten dentro del outfit.
     """
@@ -172,7 +312,7 @@ def _suggest_extras(df, slot, temp_c, formalidad_obj, rainy, max_items=3):
         return []
 
     cand["__score__"] = cand.apply(
-        lambda r: _score_prenda(r, temp_c, formalidad_obj), axis=1
+        lambda r: _score_prenda(r, temp_c, formalidad_obj, event_preferences), axis=1
     )
 
     # pequeño bonus si llueve para prendas de invierno
@@ -180,6 +320,11 @@ def _suggest_extras(df, slot, temp_c, formalidad_obj, rainy, max_items=3):
         cand["__score__"] = cand["__score__"] * cand["temporada"].apply(
             lambda t: 1.1 if str(t) == "invierno" else 1.0
         )
+    
+    # Bonus si hay cluster objetivo
+    if target_cluster is not None and "style_cluster" in cand.columns:
+        cluster_mask = cand["style_cluster"].notna() & (cand["style_cluster"] == target_cluster)
+        cand.loc[cluster_mask, "__score__"] *= 1.10
 
     cand = cand.sort_values("__score__", ascending=False)
     top = cand.head(max_items)
@@ -188,9 +333,10 @@ def _suggest_extras(df, slot, temp_c, formalidad_obj, rainy, max_items=3):
 
 # ========= función principal =========
 
-def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
+def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3, target_cluster=None, event_preferences=None):
     """
     df: DataFrame ya filtrado por segmento (women/men/kids/any).
+    target_cluster: (opcional) ID del cluster objetivo para generar outfits coherentes.
 
     Devuelve un dict con:
       - "outfits": lista de outfits (cada uno con type, items[], score)
@@ -224,7 +370,7 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
         # aplicamos penalizaciones/bonos según tejido y clima (rain/temp)
         per_item_scores = []
         for r in items:
-            s = _score_prenda(r, temp_c, formalidad_obj)
+            s = _score_prenda(r, temp_c, formalidad_obj, event_preferences)
             # obtener fabric desde fila (si existe) o desde descripcion
             fabric = None
             try:
@@ -265,7 +411,12 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
 
         base = sum(adjusted_scores) / len(adjusted_scores)
         color_factor = _color_combo_score(items)
-        return base * color_factor
+        
+        # NUEVO: Bonus por coherencia de cluster
+        cluster_coherence = _cluster_coherence_score(items)
+        cluster_match = _cluster_match_score(items, target_cluster)
+        
+        return base * color_factor * cluster_coherence * cluster_match
 
     # Prefiltrado por slot: limitamos candidatos a top-K por slot para evitar
     # explosión combinatoria en armarios grandes. Reducido a 30 para más rapidez.
@@ -275,7 +426,13 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
         cand = df_core[df_core["slot"] == slot_name].copy()
         if cand.empty:
             return cand
-        cand["__score__"] = cand.apply(lambda r: _score_prenda(r, temp_c, formalidad_obj), axis=1)
+        cand["__score__"] = cand.apply(lambda r: _score_prenda(r, temp_c, formalidad_obj, event_preferences), axis=1)
+        
+        # Bonus si hay cluster objetivo
+        if target_cluster is not None and "style_cluster" in cand.columns:
+            cluster_mask = cand["style_cluster"].notna() & (cand["style_cluster"] == target_cluster)
+            cand.loc[cluster_mask, "__score__"] *= 1.15
+        
         return cand.sort_values("__score__", ascending=False).head(k)
 
 
@@ -288,8 +445,6 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
          - Si es formal: al menos la mitad de las prendas deben ser de tejidos "formales" (satin/silk/lace/velvet/crepe/chiffon).
          - Si hace frío (temp_c <= 10) y la media de nivel_abrigo de las prendas es demasiado baja -> descartar.
          - Si hay demasiados colores fuertes (más de 2) y es formal -> descartar.
-
-        Estas reglas son intencionadamente conservadoras; si tras filtrar no quedan outfits, se ignoran (para no romper resultados).
         """
         fabrics = []
         niveles = []
@@ -373,6 +528,9 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
 
     # Ordenar por score
     outfits = sorted(outfits, key=lambda x: x["score"], reverse=True)
+    
+    # Guardar todos los outfits evaluados para análisis (top 20)
+    all_outfits_evaluated = outfits[:20] if len(outfits) > 20 else outfits
 
     # Selección de outfits disjuntos: elegimos greedily top-N sin compartir prendas
     selected = []
@@ -398,8 +556,8 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
     outfits = selected
 
     # Sugerencias de abrigos y accesorios (independientes)
-    outers = _suggest_extras(df, "outer", temp_c, formalidad_obj, rainy, max_items=3)
-    accessories = _suggest_extras(df, "accessory", temp_c, formalidad_obj, rainy, max_items=4)
+    outers = _suggest_extras(df, "outer", temp_c, formalidad_obj, rainy, max_items=3, target_cluster=target_cluster, event_preferences=event_preferences)
+    accessories = _suggest_extras(df, "accessory", temp_c, formalidad_obj, rainy, max_items=4, target_cluster=target_cluster, event_preferences=event_preferences)
 
     # Incluir los candidatos (top-K por slot) en el resultado para análisis
     try:
@@ -414,8 +572,8 @@ def recomendar_outfits(df, temp_c, formalidad_obj, rainy, n_outfits=3):
 
     return {
         "outfits": outfits[:n_outfits],
+        "all_outfits": all_outfits_evaluated,  # Top 10 para análisis
         "outers": outers,
         "accessories": accessories,
         "candidates": candidates,
     }
-

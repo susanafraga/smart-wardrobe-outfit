@@ -13,7 +13,14 @@ Uso:
 import argparse
 import os
 import re
+import sys
 import pandas as pd
+
+# Configurar codificación UTF-8 para Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
 # ========= helpers texto =========
@@ -88,26 +95,140 @@ def macro_categoria(row):
 
 
 def temporada(row):
+    """
+    Determina la temporada usando una combinación de:
+    - Tipo de tejido (fabric_type)
+    - Palabras clave en descripción/nombre
+    - Tipo de prenda
+    
+    Temporadas: invierno, otoño, primavera, verano, neutra
+    """
     text = " ".join([
         str(row["product_type_name"]),
         str(row["garment_group_name"]),
         str(row["detail_desc"]),
     ]).lower()
-
-    inv = ["coat", "jacket", "parka", "puffer", "wool", "knit",
-           "sweater", "cardigan", "fleece"]
-    ver = ["shorts", "dress", "skirt", "t-shirt", "tee", "linen",
-           "tank", "cropped", "swim"]
-
-    if any(w in text for w in inv):
+    
+    # Extraer el tipo de tejido inline (similar a extract_fabric)
+    txt = " ".join([
+        str(row.get("detail_desc", "")),
+        str(row.get("product_type_name", "")),
+        str(row.get("garment_group_name", "")),
+    ]).lower()
+    
+    fabric_mapping = {
+        "linen": "linen", "lino": "linen",
+        "cotton": "cotton", "algod": "cotton",
+        "wool": "wool", "cashmere": "wool",
+        "velvet": "velvet", "velour": "velvet",
+        "satin": "satin", "silk": "silk",
+        "lace": "lace", "chiffon": "chiffon",
+        "crepe": "crepe", "denim": "denim",
+        "leather": "leather", "faux fur": "fur", "fur": "fur",
+        "nylon": "nylon", "polyester": "polyester",
+        "viscose": "viscose", "suede": "suede",
+    }
+    
+    fabric = "unknown"
+    for k, v in fabric_mapping.items():
+        if k in txt:
+            fabric = v
+            break
+    
+    # ====== TEJIDOS POR TEMPORADA ======
+    # Tejidos muy abrigosos = invierno/otoño
+    tejidos_invierno = ["wool", "cashmere", "fur", "velvet", "suede", "leather"]
+    # Tejidos ligeros = verano/primavera
+    tejidos_verano = ["linen", "chiffon", "silk"]
+    # Tejidos intermedios = primavera/otoño
+    tejidos_intermedios = ["cotton", "denim", "viscose", "polyester", "nylon"]
+    
+    # ====== PALABRAS CLAVE POR TEMPORADA ======
+    # Invierno: prendas muy abrigadas
+    palabras_invierno = [
+        "coat", "parka", "puffer", "down", "quilted", "thermal",
+        "wool", "cashmere", "fleece", "fuzzy", "furry", "suede",
+        "turtleneck", "mock neck", "high neck"
+    ]
+    
+    # Otoño: prendas abrigadas pero no extremas
+    palabras_otono = [
+        "cardigan", "sweater", "knit", "jumper", "pullover",
+        "blazer", "trench", "windbreaker", "jacket", "hoodie"
+    ]
+    
+    # Primavera: prendas ligeras pero no extremas
+    palabras_primavera = [
+        "light", "breathable", "transitional", "layering",
+        "long sleeve", "button down", "shirt"
+    ]
+    
+    # Verano: prendas muy ligeras
+    palabras_verano = [
+        "shorts", "tank", "cropped", "swim", "bikini", "beach",
+        "sleeveless", "strapless", "linen", "chiffon", "silk",
+        "t-shirt", "tee", "camisole", "halter"
+    ]
+    
+    # ====== LÓGICA DE DECISIÓN ======
+    # Prioridad 1: Tejido muy específico
+    if fabric in tejidos_invierno:
+        # Si tiene palabras de otoño, puede ser otoño; si no, invierno
+        if any(w in text for w in palabras_otono):
+            return "otoño"
         return "invierno"
-    if any(w in text for w in ver):
+    
+    if fabric in tejidos_verano:
+        # Si tiene palabras de primavera, puede ser primavera; si no, verano
+        if any(w in text for w in palabras_primavera):
+            return "primavera"
         return "verano"
+    
+    # Prioridad 2: Palabras clave muy específicas
+    if any(w in text for w in palabras_invierno):
+        return "invierno"
+    
+    if any(w in text for w in palabras_verano):
+        return "verano"
+    
+    if any(w in text for w in palabras_otono):
+        # Si el tejido es intermedio, puede ser primavera u otoño
+        if fabric in tejidos_intermedios:
+            # Otoño si tiene palabras como "warm", "cozy", "knit"
+            if any(w in text for w in ["warm", "cozy", "knit", "wool"]):
+                return "otoño"
+            return "primavera"
+        return "otoño"
+    
+    if any(w in text for w in palabras_primavera):
+        return "primavera"
+    
+    # Prioridad 3: Tejidos intermedios sin palabras clave claras
+    if fabric in tejidos_intermedios:
+        # Si tiene palabras de abrigo, otoño; si no, primavera
+        if any(w in text for w in ["warm", "cozy", "thick", "heavy"]):
+            return "otoño"
+        if any(w in text for w in ["light", "breathable", "thin", "airy"]):
+            return "primavera"
+        # Por defecto, primavera para tejidos intermedios
+        return "primavera"
+    
+    # Por defecto: neutra
     return "neutra"
 
 
 def nivel_abrigo_from_temp(temp_cat):
-    return {"invierno": 3, "verano": 1, "neutra": 2}.get(temp_cat, 2)
+    """Calcula nivel de abrigo basado en temporada."""
+    mapping = {
+        "invierno": 3,  # Muy abrigado
+        "otoño": 2.5,   # Abrigado (redondeado a 3)
+        "primavera": 1.5,  # Ligero (redondeado a 2)
+        "verano": 1,    # Muy ligero
+        "neutra": 2,    # Medio
+    }
+    abrigo = mapping.get(temp_cat, 2)
+    # Redondear a entero (1, 2 o 3)
+    return int(round(abrigo))
 
 
 TOPWORDS_FORMAL = ["blazer", "suit", "dress", "shirt", "oxford", "chinos", "trench"]
@@ -248,7 +369,8 @@ def main():
     if not os.path.exists(args.input):
         raise FileNotFoundError(f"No encuentro el archivo de entrada: {args.input}")
 
-    df = pd.read_csv(args.input)
+    # Leer CSV con low_memory=False para evitar warnings de tipos mixtos
+    df = pd.read_csv(args.input, low_memory=False)
 
     # ---- df_final con columnas limpias ----
     df_final = pd.DataFrame()
@@ -269,6 +391,11 @@ def main():
     )
 
     df_final["macro_categoria"] = df.apply(macro_categoria, axis=1)
+    
+    # IMPORTANTE: Extraer fabric_type ANTES de temporada porque temporada lo usa
+    df_final["fabric_type"] = df.apply(extract_fabric, axis=1)
+    
+    # Ahora calcular temporada (que usa fabric_type)
     df_final["temporada"] = df.apply(temporada, axis=1)
     df_final["nivel_abrigo"] = df_final["temporada"].map(nivel_abrigo_from_temp)
     df_final["formalidad"] = df.apply(formalidad, axis=1)
@@ -281,14 +408,13 @@ def main():
     df_final["segment"] = df.apply(segment, axis=1)
     df_final["slot"] = df.apply(slot, axis=1)
 
-    # extraer tipo de tejido/material
-    df_final["fabric_type"] = df.apply(extract_fabric, axis=1)
+    # fabric_type ya se extrajo antes (necesario para temporada)
 
     # quitar duplicados por id por seguridad
     df_final = df_final.drop_duplicates(subset="id").reset_index(drop=True)
 
     df_final.to_csv(args.output, index=False, encoding="utf-8")
-    print("✅ articles_final.csv generado")
+    print("[OK] articles_final.csv generado")
     print(f"   Rutas: {args.output}")
     print(f"   Filas: {len(df_final):,}")
     print("   segment:", df_final["segment"].value_counts().to_dict())

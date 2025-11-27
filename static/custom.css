@@ -404,33 +404,175 @@ label,
   line-height: 1.5;
 }
 
-input.form-control,
-textarea.form-control,
-select.form-control,
-.Select-control,
-.Select,
-.dash-dropdown .Select-control {
+/* ===== Inputs uniformes - todos mismo tamaño ===== */
+
+/* Input de texto (Ciudad) */
+input.form-control {
   background-color: var(--zara-white) !important;
   border-radius: 0 !important;
   border: 1px solid var(--zara-border) !important;
   color: var(--zara-text) !important;
-  font-size: 16px;
-  padding: 14px 20px;
-  box-shadow: none;
+  font-size: 16px !important;
+  padding: 14px 20px !important;
+  box-shadow: none !important;
   transition: border-color 0.2s ease;
   font-weight: 300;
-  line-height: 1.5;
+  line-height: 1.5 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
 }
 
-input.form-control:focus,
-textarea.form-control:focus,
-select.form-control:focus,
+/* Dropdown (Tipo de evento y Perfil) */
+.dash-dropdown,
+.dash-dropdown > div,
+.Select,
+.Select-control {
+  background-color: var(--zara-white) !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--zara-border) !important;
+  color: var(--zara-text) !important;
+  font-size: 16px !important;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease;
+  font-weight: 300;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.Select-input,
+.Select-placeholder,
+.Select-value,
+.Select-value-label {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  line-height: 48px !important;
+  font-size: 16px !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+.Select-value {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 48px !important;
+}
+
+.Select-input {
+  height: 48px !important;
+  line-height: 48px !important;
+}
+
+/* Date picker (Fecha) - Ajustes específicos para alineación */
+.SingleDatePickerInput,
+.SingleDatePickerInput__withBorder {
+  background-color: var(--zara-white) !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--zara-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+}
+
+.DateInput {
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+}
+
+.DateInput_input {
+  background-color: var(--zara-white) !important;
+  color: var(--zara-text) !important;
+  font-size: 16px !important;
+  padding: 14px 20px !important;
+  font-weight: 300;
+  line-height: 1.5 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+}
+
+.DateInput_input::placeholder {
+  line-height: 1.5 !important;
+}
+
+/* Asegurar que los contenedores también tengan la misma altura */
+.dash-dropdown,
+.DateInput,
+.SingleDatePickerInput {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  vertical-align: middle !important;
+}
+
+/* Forzar que las columnas tengan el mismo ancho */
+.card-controls .row > .dbc.Col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Asegurar que todos los inputs dentro de las columnas tengan el mismo tamaño */
+.card-controls .dbc.Col > input,
+.card-controls .dbc.Col > div > input,
+.card-controls .dbc.Col > div > div,
+.card-controls .dbc.Col > .dash-dropdown,
+.card-controls .dbc.Col > .DateInput,
+.card-controls .dbc.Col > .SingleDatePickerInput {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  width: 100% !important;
+  vertical-align: middle !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Asegurar que los wrappers del date picker también estén alineados */
+.card-controls .dbc.Col > div > .DateInput,
+.card-controls .dbc.Col > div > .SingleDatePickerInput {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  vertical-align: middle !important;
+}
+
+input.form-control:focus {
+  border-color: var(--zara-black) !important;
+  box-shadow: none !important;
+  background-color: var(--zara-white) !important;
+  outline: none !important;
+}
+
 .Select.is-focused .Select-control,
 .dash-dropdown .Select-control:focus-within {
   border-color: var(--zara-black) !important;
-  box-shadow: none;
+  box-shadow: none !important;
   background-color: var(--zara-white) !important;
-  outline: none;
+  outline: none !important;
 }
 
 .dash-dropdown .Select-menu-outer {
@@ -451,26 +593,12 @@ select.form-control:focus,
   background-color: var(--zara-hover);
 }
 
-/* Date picker */
-
-.DateInput_input {
-  background-color: var(--zara-white) !important;
-  color: var(--zara-text) !important;
-  font-size: 16px;
-  padding: 14px 20px;
-  font-weight: 300;
-  line-height: 1.5;
-}
-
-.DateInput,
-.SingleDatePickerInput,
-.DateInput_input {
-  border-radius: 0 !important;
-  border: 1px solid var(--zara-border) !important;
-}
-
-.SingleDatePickerInput {
-  background-color: var(--zara-white);
+/* Date picker focus */
+.DateInput_input:focus,
+.SingleDatePickerInput:focus-within {
+  border-color: var(--zara-black) !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /* Main call-to-action in config */
@@ -869,4 +997,3 @@ a:hover {
 .mt-5 {
   margin-top: var(--spacing-xxl) !important;
 }
-

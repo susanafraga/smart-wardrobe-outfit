@@ -3,7 +3,10 @@
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
+import numpy as np
 
 from src.model import NEUTRAL_COLORS
 
@@ -29,6 +32,8 @@ def _outfits_to_df(rec_data: dict) -> pd.DataFrame:
                 "formalidad": item.get("formalidad", ""),
                 "temporada": item.get("temporada", ""),
                 "nivel_abrigo": item.get("nivel_abrigo", None),
+                "style_cluster": item.get("style_cluster", None),
+                "fabric_type": item.get("fabric_type", ""),
             }
             rows.append(row)
     if not rows:
@@ -36,278 +41,322 @@ def _outfits_to_df(rec_data: dict) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _build_scores_chart(df: pd.DataFrame):
-    """Bar chart con el score de cada outfit."""
-    if df.empty or "outfit_score" not in df.columns:
-        return html.Div("No hay datos suficientes para el gráfico de scores.", className="text-muted")
-
-    scores = (
-        df[["outfit_idx", "outfit_score"]]
-        .drop_duplicates()
-        .sort_values("outfit_idx")
-    )
-
-    fig = px.bar(
-        scores,
-        x="outfit_idx",
-        y="outfit_score",
-        text="outfit_score",
-        labels={"outfit_idx": "Outfit", "outfit_score": "Score"},
-    )
-    fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+def _build_outfit_selection_detailed(rec_data: dict):
+    """Gráfico detallado de selección de outfits con pie charts de clusters."""
+    if not rec_data or "all_outfits" not in rec_data:
+        return html.Div("No hay información de selección.", className="text-muted")
+    
+    all_outfits = rec_data.get("all_outfits", [])
+    selected_outfits = rec_data.get("outfits", [])
+    
+    if not all_outfits:
+        return html.Div("No hay datos disponibles.", className="text-muted")
+    
+    # Obtener scores de los seleccionados
+    selected_scores = {o.get("score", 0) for o in selected_outfits}
+    
+    # Preparar datos con información de tipo y clusters
+    outfits_data = []
+    cluster_data_list = []  # Lista para mantener el orden
+    
+    for idx, outfit in enumerate(all_outfits[:20]):  # Top 20
+        score = outfit.get("score", 0)
+        is_selected = score in selected_scores
+        
+        # Determinar tipo de outfit basado en prendas
+        items = outfit.get("items", [])
+        slots = [item.get("slot", "") for item in items]
+        
+        if "dress" in slots:
+            outfit_type = "Vestido"
+        elif "top" in slots and "bottom" in slots:
+            outfit_type = "Conjunto"
+        else:
+            outfit_type = "Otro"
+        
+        # Analizar clusters en este outfit
+        clusters = {}
+        for item in items:
+            cluster_id = item.get("style_cluster")
+            if cluster_id is not None:
+                cluster_key = f"Cluster {int(cluster_id)}"
+                clusters[cluster_key] = clusters.get(cluster_key, 0) + 1
+        
+        outfits_data.append({
+            "score": score,
+            "selected": "Sí" if is_selected else "No",
+            "type": outfit_type,
+            "num_items": len(items),
+            "original_idx": idx,  # Guardar índice original
+        })
+        
+        # Guardar datos de clusters en lista (mantener orden)
+        cluster_data_list.append(clusters)
+    
+    outfits_df = pd.DataFrame(outfits_data)
+    
+    # Ordenar por score descendente
+    outfits_df = outfits_df.sort_values("score", ascending=False).reset_index(drop=True)
+    outfits_df["rank"] = range(1, len(outfits_df) + 1)
+    
+    # Mapear clusters al ranking correcto usando el índice original
+    cluster_data_sorted = {}
+    for rank, row in outfits_df.iterrows():
+        original_idx = row["original_idx"]
+        cluster_data_sorted[rank] = cluster_data_list[original_idx] if original_idx < len(cluster_data_list) else {}
+    
+    # Calcular min y max para el eje Y (con margen para ver diferencias)
+    score_min = outfits_df["score"].min()
+    score_max = outfits_df["score"].max()
+    score_range = score_max - score_min
+    
+    # Ajustar el rango del eje Y para ver mejor las diferencias
+    y_min = max(0, score_min - (score_range * 0.1))
+    y_max = score_max + (score_range * 0.1)
+    
+    # Crear gráfico agrupado por tipo
+    fig = go.Figure()
+    
+    tipos = outfits_df["type"].unique()
+    colors_map = {"Vestido": "#9B59B6", "Conjunto": "#3498DB", "Otro": "#95A5A6"}
+    
+    for tipo in tipos:
+        tipo_subset = outfits_df[outfits_df["type"] == tipo]
+        
+        # Separar seleccionados y no seleccionados
+        selected = tipo_subset[tipo_subset["selected"] == "Sí"]
+        not_selected = tipo_subset[tipo_subset["selected"] == "No"]
+        
+        if len(not_selected) > 0:
+            fig.add_trace(go.Bar(
+                name=f"{tipo} (No seleccionado)",
+                x=not_selected["rank"],
+                y=not_selected["score"],
+                marker_color=colors_map.get(tipo, "#95A5A6"),
+                marker_opacity=0.5,
+                text=not_selected["score"].round(3).astype(str),
+                textposition="outside",
+                hovertemplate="<b>Ranking %{x}</b><br>Tipo: %{fullData.name}<br>Score: %{y:.3f}<br><extra></extra>",
+            ))
+        
+        if len(selected) > 0:
+            fig.add_trace(go.Bar(
+                name=f"{tipo} (Seleccionado)",
+                x=selected["rank"],
+                y=selected["score"],
+                marker_color=colors_map.get(tipo, "#27AE60"),
+                marker_line=dict(color="#27AE60", width=3),
+                text=selected["score"].round(3).astype(str),
+                textposition="outside",
+                hovertemplate="<b>Ranking %{x}</b><br>Tipo: %{fullData.name}<br>Score: %{y:.3f}<br>✓ SELECCIONADO<extra></extra>",
+            ))
+    
     fig.update_layout(
-        title="Calidad relativa de cada outfit",
-        xaxis_title="Outfit",
-        yaxis_title="Score (más alto = mejor ajuste)",
-        margin=dict(t=60, l=40, r=20, b=40),
-        height=400,
-        autosize=False,
+        title="Top 20 outfits evaluados (ordenados por score, agrupados por tipo)",
+        xaxis_title="Ranking (ordenado por score)",
+        yaxis_title="Score",
+        margin=dict(t=60, l=40, r=200, b=40),  # Más margen derecho para la leyenda
+        height=450,
+        autosize=True,
+        legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02),  # Leyenda a la derecha
+        barmode="group",
+        yaxis=dict(range=[y_min, y_max]),
     )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _build_abrigo_chart(df: pd.DataFrame, temp_c: float):
-    """
-    Distribución de nivel de abrigo de las prendas vs lo que pediría la temperatura.
-    Nivel 1 = ligero, 2 = medio, 3 = abrigado.
-    """
-    if df.empty or "nivel_abrigo" not in df.columns:
-        return html.Div("No hay información de abrigo suficiente.", className="text-muted")
-
-    abrigo = df.dropna(subset=["nivel_abrigo"]).copy()
-    if abrigo.empty:
-        return html.Div("No hay información de abrigo suficiente.", className="text-muted")
-
-    # target sencillo en función de temperatura (mismo criterio que tu modelo)
-    if temp_c >= 24:
-        target = 1
-    elif temp_c >= 15:
-        target = 2
+    
+    # Crear un solo pie chart con todos los clusters de los 20 outfits combinados
+    all_clusters_combined = {}
+    
+    # Combinar todos los clusters de los 20 outfits
+    for rank in range(1, 21):
+        clusters = cluster_data_sorted.get(rank, {})
+        for cluster_key, count in clusters.items():
+            all_clusters_combined[cluster_key] = all_clusters_combined.get(cluster_key, 0) + count
+    
+    # Crear pie chart único con todos los clusters
+    if not all_clusters_combined:
+        fig_pie = go.Figure()
+        fig_pie.add_annotation(
+            text="Sin datos de clusters",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=14, color="gray"),
+        )
+        fig_pie.update_layout(
+            title="Distribución de clusters en los 20 outfits",
+            margin=dict(t=60, l=20, r=20, b=20),
+            height=400,
+            autosize=True,
+            showlegend=False,
+        )
     else:
-        target = 3
-
-    counts = (
-        abrigo["nivel_abrigo"]
-        .astype(int)
-        .value_counts()
-        .rename_axis("nivel_abrigo")
-        .reset_index(name="num_prendas")
-        .sort_values("nivel_abrigo")
-    )
-
-    fig = px.bar(
-        counts,
-        x="nivel_abrigo",
-        y="num_prendas",
-        labels={"nivel_abrigo": "Nivel de abrigo", "num_prendas": "Número de prendas"},
-    )
-    fig.update_layout(
-        title=f"Nivel de abrigo de las prendas (objetivo ≈ {target})",
-        xaxis=dict(
-            tickmode="array",
-            tickvals=[1, 2, 3],
-            ticktext=["Ligero", "Medio", "Abrigado"],
-        ),
-        margin=dict(t=60, l=40, r=20, b=40),
-        height=400,
-        autosize=False,
-        shapes=[
-            dict(
-                type="line",
-                x0=target,
-                x1=target,
-                y0=0,
-                y1=float(counts["num_prendas"].max()) * 1.1,
-                line=dict(dash="dash"),
-            )
+        labels = list(all_clusters_combined.keys())
+        values = list(all_clusters_combined.values())
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=labels,
+            values=values,
+            hole=0.4,
+            textinfo='label+percent',
+            hovertemplate="<b>%{label}</b><br>Prendas: %{value}<br>Porcentaje: %{percent}<extra></extra>",
+            marker=dict(colors=px.colors.qualitative.Set3[:len(labels)]),
+        )])
+        
+        fig_pie.update_layout(
+            title="Distribución de clusters en los 20 outfits (todas las prendas combinadas)",
+            margin=dict(t=60, l=20, r=20, b=20),
+            height=400,
+            autosize=True,
+            showlegend=True,
+        )
+    
+    # Explicación mejorada del score
+    explanation = html.Div(
+        [
+            html.P(
+                [
+                    html.Strong("Explicación del score: "),
+                    "El score combina múltiples factores: "
+                ],
+                className="text-muted small mt-3 mb-1",
+                style={"fontSize": "13px", "lineHeight": "1.6"},
+            ),
+            html.Ul(
+                [
+                    html.Li("Adecuación al clima: temperatura y condiciones meteorológicas", className="text-muted small", style={"fontSize": "12px"}),
+                    html.Li("Coherencia de estilo: prendas del mismo cluster tienen mayor coherencia", className="text-muted small", style={"fontSize": "12px"}),
+                    html.Li("Formalidad: adecuación al tipo de evento", className="text-muted small", style={"fontSize": "12px"}),
+                    html.Li("Combinación de colores: armonía cromática entre prendas", className="text-muted small", style={"fontSize": "12px"}),
+                    html.Li("Tejidos: compatibilidad y adecuación al evento", className="text-muted small", style={"fontSize": "12px"}),
+                ],
+                className="mb-2",
+            ),
+            html.P(
+                "Un score más alto indica un outfit mejor evaluado. Los 3 outfits seleccionados (marcados en verde) "
+                "son los que tienen el mejor balance entre todos estos factores.",
+                className="text-muted small",
+                style={"fontSize": "12px", "lineHeight": "1.6"},
+            ),
         ],
-        annotations=[
-            dict(
-                x=target,
-                y=float(counts["num_prendas"].max()) * 1.1,
-                text="Objetivo por temperatura",
-                showarrow=False,
-                yanchor="bottom",
-            )
-        ],
+        className="mb-3",
     )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
+    
+    return html.Div([
+        dbc.Row([
+            dbc.Col(
+                dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '450px', 'width': '100%'}),
+                width=12,
+                className="px-0",
+            ),
+        ], className="mb-4 g-0"),
+        html.H6("Distribución de clusters en los 20 outfits", className="mt-4 mb-3"),
+        dbc.Row([
+            dbc.Col(
+                dcc.Graph(figure=fig_pie, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'}),
+                width=12,
+                className="px-0",
+            ),
+        ], className="mb-3 g-0"),
+        explanation,
+    ])
 
 
-def _build_colors_chart(df: pd.DataFrame):
-    """Gráfico de colores usados (neutros vs fuertes)."""
+def _build_color_analysis_improved(df: pd.DataFrame):
+    """Análisis mejorado de colores: pie chart general + barras por outfit."""
     if df.empty:
-        return html.Div("No hay información de colores suficiente.", className="text-muted")
-
-    df = df.copy()
-    df["tipo_color"] = df["color_base"].apply(
-        lambda c: "Neutro" if c in NEUTRAL_COLORS else ("Sin info" if c == "" else "Color fuerte")
-    )
-
-    counts = (
-        df["tipo_color"]
-        .value_counts()
-        .rename_axis("tipo_color")
-        .reset_index(name="num_prendas")
-    )
-
-    fig = px.pie(
-        counts,
-        names="tipo_color",
-        values="num_prendas",
+        return html.Div("No hay datos suficientes.", className="text-muted")
+    
+    # Pie chart: distribución general de colores
+    all_colors = df["color_base"].value_counts()
+    if len(all_colors) == 0:
+        return html.Div("No hay datos de colores.", className="text-muted")
+    
+    # Preparar datos para pie chart
+    pie_data = []
+    for color, count in all_colors.items():
+        pie_data.append({
+            "color": color.title() if color else "N/A",
+            "count": count,
+        })
+    
+    pie_df = pd.DataFrame(pie_data)
+    
+    # Crear pie chart
+    fig_pie = go.Figure(data=[go.Pie(
+        labels=pie_df["color"],
+        values=pie_df["count"],
         hole=0.4,
-    )
-    fig.update_layout(
-        title="Equilibrio de colores en los outfits",
-        margin=dict(t=60, l=20, r=20, b=40),
+        textinfo='label+percent',
+        hovertemplate="<b>%{label}</b><br>Cantidad: %{value}<br>Porcentaje: %{percent}<extra></extra>",
+    )])
+    
+    fig_pie.update_layout(
+        title="Distribución general de colores en todos los outfits",
+        margin=dict(t=60, l=20, r=20, b=20),
         height=400,
         autosize=False,
+        showlegend=True,
     )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _build_slot_coverage_chart(df: pd.DataFrame):
-    """Cuántos outfits contienen cada slot (top, bottom, dress, shoes)."""
-    if df.empty or "slot" not in df.columns:
-        return html.Div("No hay información de slots suficiente.", className="text-muted")
-
-    counts = (
-        df.groupby("slot")["outfit_idx"]
-        .nunique()
-        .reset_index(name="num_outfits")
-        .sort_values("num_outfits", ascending=False)
-    )
-
-    fig = px.bar(
-        counts,
-        x="slot",
-        y="num_outfits",
-        labels={"slot": "Slot", "num_outfits": "Número de outfits"},
-    )
-    fig.update_layout(
-        title="Cobertura de slots en los outfits (cuántos outfits incluyen cada tipo)",
+    
+    # Gráfico de barras: colores por outfit
+    color_data = []
+    for outfit_idx in sorted(df["outfit_idx"].unique()):
+        outfit_data = df[df["outfit_idx"] == outfit_idx]
+        
+        # Distribución de colores
+        colores = outfit_data["color_base"].value_counts()
+        
+        for color, count in colores.items():
+            color_data.append({
+                "outfit": f"Outfit {outfit_idx}",
+                "color": color.title() if color else "N/A",
+                "count": count,
+            })
+    
+    color_df = pd.DataFrame(color_data)
+    
+    # Crear gráfico de barras agrupadas
+    fig_bars = go.Figure()
+    
+    colores_unicos = sorted(color_df["color"].unique())
+    colors_palette = px.colors.qualitative.Set3[:len(colores_unicos)]
+    
+    for i, color in enumerate(colores_unicos):
+        color_subset = color_df[color_df["color"] == color]
+        
+        fig_bars.add_trace(go.Bar(
+            name=color,
+            x=color_subset["outfit"],
+            y=color_subset["count"],
+            marker_color=colors_palette[i % len(colors_palette)],
+            text=color_subset["count"],
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>%{fullData.name}: %{y} prendas<extra></extra>",
+        ))
+    
+    fig_bars.update_layout(
+        title="Distribución de colores por outfit (número de prendas)",
+        xaxis_title="Outfit",
+        yaxis_title="Número de prendas",
+        barmode="group",
         margin=dict(t=60, l=40, r=20, b=40),
         height=400,
         autosize=False,
+        legend_title="Color",
     )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _build_item_reuse_chart(df: pd.DataFrame, top_n: int = 10):
-    """Prendas que más se repiten entre los outfits (número de outfits donde aparece cada prenda)."""
-    if df.empty or "nombre" not in df.columns:
-        return html.Div("No hay información de prendas suficiente.", className="text-muted")
-
-    reuse = (
-        df.groupby("nombre")["outfit_idx"]
-        .nunique()
-        .reset_index(name="num_outfits")
-        .sort_values("num_outfits", ascending=False)
-    )
-
-    if reuse.empty:
-        return html.Div("No hay datos de reutilización de prendas.", className="text-muted")
-
-    top = reuse.head(top_n)
-    fig = px.bar(
-        top,
-        x="nombre",
-        y="num_outfits",
-        labels={"nombre": "Prenda", "num_outfits": "# Outfits"},
-    )
-    fig.update_layout(
-        title=f"Top {top_n} prendas más reutilizadas entre los outfits",
-        xaxis_tickangle=-45,
-        margin=dict(t=60, l=40, r=20, b=80),
-        height=400,
-        autosize=False,
-    )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _candidates_to_df(rec_data: dict) -> pd.DataFrame:
-    """
-    Convierte el diccionario 'candidates' de rec_data en un DataFrame plano.
-    """
-    cand = rec_data.get("candidates", {}) or {}
-    rows = []
-    for slot, items in cand.items():
-        for it in items:
-            row = {
-                "slot": slot,
-                "nombre": it.get("nombre", ""),
-                "color_base": str(it.get("color_base", "") or "").lower(),
-                "formalidad": it.get("formalidad", ""),
-                "temporada": it.get("temporada", ""),
-                "nivel_abrigo": it.get("nivel_abrigo", None),
-                "fabric_type": it.get("fabric_type", "") or it.get("fabric", ""),
-                "candidate_score": it.get("__score__", it.get("candidate_score", None)),
-            }
-            rows.append(row)
-    if not rows:
-        return pd.DataFrame()
-    return pd.DataFrame(rows)
-
-
-def _build_candidates_score_hist(df: pd.DataFrame):
-    """Histograma de scores de los candidatos (por slot)."""
-    if df.empty or "candidate_score" not in df.columns:
-        return html.Div("No hay datos de candidatos suficientes para el histograma.", className="text-muted")
-
-    fig = px.histogram(df, x="candidate_score", nbins=20, color="slot", marginal="rug")
-    fig.update_layout(
-        title="Distribución de score entre candidatos (por slot)",
-        margin=dict(t=60, l=40, r=20, b=40),
-        height=400,
-        autosize=False,
-    )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _build_candidates_fabric_chart(df: pd.DataFrame):
-    """Distribución de tipos de tejido entre los candidatos."""
-    if df.empty or "fabric_type" not in df.columns:
-        return html.Div("No hay información de tejidos en candidatos.", className="text-muted")
-
-    df = df.copy()
-    df["fabric_type"] = df["fabric_type"].fillna("unknown").astype(str)
-    counts = df["fabric_type"].value_counts().reset_index(name="count").rename(columns={"index": "fabric_type"})
-    fig = px.pie(counts, names="fabric_type", values="count", hole=0.35)
-    fig.update_layout(
-        title="Distribución de tejidos en el pool de candidatos",
-        margin=dict(t=60, l=20, r=20, b=40),
-        height=400,
-        autosize=False,
-    )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
-
-
-def _build_candidate_slot_coverage(df: pd.DataFrame):
-    """Cobertura por slot para el pool de candidatos (nº candidatos por slot)."""
-    if df.empty or "slot" not in df.columns:
-        return html.Div("No hay información de slots en candidatos.", className="text-muted")
-
-    counts = (
-        df["slot"]
-        .value_counts()
-        .reset_index(name="num_candidates")
-        .rename(columns={"index": "slot"})
-        .sort_values("num_candidates", ascending=False)
-    )
-
-    fig = px.bar(
-        counts,
-        x="slot",
-        y="num_candidates",
-        labels={"slot": "Slot", "num_candidates": "Número de candidatos"},
-    )
-    fig.update_layout(
-        title="Cobertura de slots en el pool de candidatos (nº candidatos por slot)",
-        margin=dict(t=60, l=40, r=20, b=40),
-        height=400,
-        autosize=False,
-    )
-    return dcc.Graph(figure=fig, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'})
+    
+    return dbc.Row([
+        dbc.Col(
+            dcc.Graph(figure=fig_pie, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'}),
+            md=6,
+            style={'padding': '0 15px'},
+        ),
+        dbc.Col(
+            dcc.Graph(figure=fig_bars, config={'displayModeBar': False}, style={'height': '400px', 'width': '100%'}),
+            md=6,
+            style={'padding': '0 15px'},
+        ),
+    ], className="mb-4", style={'margin': '0'})
 
 
 def build_analytics_layout(rec_data: dict):
@@ -317,78 +366,43 @@ def build_analytics_layout(rec_data: dict):
     """
     if not rec_data:
         return html.Div("No hay recomendaciones todavía. Genera primero un outfit.")
-
+    
     df = _outfits_to_df(rec_data)
     meta = rec_data.get("meta", {})
-    temp_c = float(meta.get("temp_c", 20.0))
-    rainy = bool(meta.get("rainy", False))
     city = meta.get("city", "Tu ciudad")
     used_date = meta.get("used_date", "")
-
-    # candidatos (top-K por slot) para análisis más rico
-    cand_df = _candidates_to_df(rec_data)
-
+    
     header = html.Div(
         [
             html.H4("Análisis de la recomendación", className="mb-2"),
             html.P(
-                f"Ciudad: {city} · {temp_c:.1f}°C · lluvia {'sí' if rainy else 'no'} · día usado: {used_date}",
+                f"Ciudad: {city} · día usado: {used_date}",
                 className="text-muted small",
             ),
         ],
-        className="mb-3",
+        className="mb-4",
     )
-
-    scores_chart = _build_scores_chart(df)
-    colors_chart = _build_colors_chart(df)
-    abrigo_chart = _build_abrigo_chart(df, temp_c)
-    slot_chart = _build_slot_coverage_chart(df)
-    reuse_chart = _build_item_reuse_chart(df)
-
-    # gráficos basados en pool de candidatos (si hay datos)
-    cand_score_hist = _build_candidates_score_hist(cand_df)
-    cand_fabric_chart = _build_candidates_fabric_chart(cand_df)
-    cand_slot_coverage = _build_candidate_slot_coverage(cand_df)
-
-    children = [header]
-
-    # Mostrar información del pool de candidatos (si existe)
-    if not cand_df.empty:
-        children.append(
-            html.Div(
-                [
-                    html.H5("Análisis del pool de candidatos (top-K por slot)", className="mb-2"),
-                    dbc.Row(
-                        [
-                            dbc.Col(cand_score_hist, md=6),
-                            dbc.Col(cand_fabric_chart, md=6),
-                        ],
-                        className="mb-4",
-                    ),
-                    dbc.Row([dbc.Col(cand_slot_coverage, md=12)], className="mb-4"),
-                ]
-            )
-        )
-
-    children.extend(
+    
+    # Gráficos mejorados
+    color_chart = _build_color_analysis_improved(df)
+    selection_chart = _build_outfit_selection_detailed(rec_data)
+    
+    return html.Div(
         [
-            dbc.Row(
-                [
-                    dbc.Col(scores_chart, md=6),
-                    dbc.Col(colors_chart, md=6),
-                ],
-                className="mb-4",
+            header,
+            html.H5("Análisis de colores", className="mb-3 mt-4"),
+            html.P(
+                "Distribución general de colores y distribución por outfit.",
+                className="text-muted mb-4",
             ),
-            dbc.Row(
-                [
-                    dbc.Col(slot_chart, md=6),
-                    dbc.Col(reuse_chart, md=6),
-                ],
-                className="mb-4",
+            color_chart,
+            html.H5("Selección de outfits", className="mb-3 mt-5"),
+            html.P(
+                "Top 20 outfits evaluados, ordenados por score y agrupados por tipo de prenda. "
+                "El pie chart muestra la distribución de clusters en todos los outfits combinados.",
+                className="text-muted mb-4",
             ),
-            html.H5("Nivel de abrigo de las prendas", className="mb-2"),
-            abrigo_chart,
-        ]
+            selection_chart,
+        ],
+        style={'width': '100%', 'maxWidth': '100%'},
     )
-
-    return html.Div(children)
