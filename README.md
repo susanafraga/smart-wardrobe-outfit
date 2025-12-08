@@ -2,7 +2,6 @@
 ## Render Link
 https://smart-wardrobe-outfit.onrender.com/
 
-
 ## Índice
 1. [Visión General](#visión-general)
 2. [Modelo de Clustering](#modelo-de-clustering)
@@ -36,6 +35,16 @@ Antes de aplicar el clustering, es necesario **extraer y estructurar caracterís
 ### Objetivo
 
 Transformar `articles.csv` (datos raw) en `articles_final.csv` (datos estructurados con features extraídas).
+
+#### Datos
+
+Extraídos de repositorio de kaggle: https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/data?select=articles.csv
+
+**¡OJO!** Las imágenes ocupaban mucho espacio para subirlas a GitHub. Se pueden descargar en https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/data?select=images y extraer en una carpeta con nombre **assets**/0xx (siendo 0xx las carpetas con las imágenes incluidas que ya están identificadas en el código para que aparezcan de manera correcta).
+
+De esa manera, si se ejecuta en local, saldrían las imágenes. 
+
+Para ver correctamente el funcionamiento de la app, visualizar el video publicado.
 
 ### Características Extraídas
 
