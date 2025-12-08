@@ -113,20 +113,20 @@ Cada cluster agrupa prendas con características de estilo similares:
 
 ## 6. Ventajas del Enfoque
 
-✅ **Automatización**: No requiere etiquetado manual de estilos  
-✅ **Escalabilidad**: Funciona con catálogos de cualquier tamaño  
-✅ **Objetividad**: Basado en características medibles, no en opiniones subjetivas  
-✅ **Flexibilidad**: Fácil cambiar el número de clusters o añadir nuevas variables  
-✅ **Reproducibilidad**: Resultados consistentes gracias a `random_state=42`
+**Automatización**: No requiere etiquetado manual de estilos  
+**Escalabilidad**: Funciona con catálogos de cualquier tamaño  
+**Objetividad**: Basado en características medibles, no en opiniones subjetivas  
+**Flexibilidad**: Fácil cambiar el número de clusters o añadir nuevas variables  
+**Reproducibilidad**: Resultados consistentes gracias a `random_state=42`
 
 ---
 
 ## 7. Limitaciones y Consideraciones
 
-⚠️ **Número de clusters fijo**: Requiere decidir cuántos estilos existen (4 en este caso)  
-⚠️ **Interpretación manual**: Los clusters no tienen nombres automáticos, hay que analizarlos  
-⚠️ **Dependencia de features**: La calidad depende de las variables seleccionadas  
-⚠️ **K-Means asume clusters esféricos**: Puede no capturar relaciones complejas
+**Número de clusters fijo**: Requiere decidir cuántos estilos existen (4 en este caso)  
+**Interpretación manual**: Los clusters no tienen nombres automáticos, hay que analizarlos  
+**Dependencia de features**: La calidad depende de las variables seleccionadas  
+**K-Means asume clusters esféricos**: Puede no capturar relaciones complejas
 
 ---
 
@@ -158,19 +158,4 @@ Luego, la aplicación utiliza esta columna `style_cluster` para:
   - `sklearn.compose.ColumnTransformer`
   - `sklearn.pipeline.Pipeline`
 
----
-
-## Preguntas Frecuentes para el Profesor
-
-**P: ¿Por qué 4 clusters?**  
-R: Es un balance entre granularidad (más clusters = más detalle) y simplicidad (menos clusters = más fácil de interpretar). Se puede ajustar con `--n_clusters`.
-
-**P: ¿Se podría usar otro algoritmo?**  
-R: Sí, alternativas incluyen DBSCAN (clusters de forma irregular), Hierarchical Clustering (árbol de clusters), o GMM (Gaussian Mixture Models). K-Means fue elegido por su simplicidad y eficiencia.
-
-**P: ¿Cómo se valida la calidad de los clusters?**  
-R: Métricas como Silhouette Score o Inertia (suma de distancias al centroide) pueden evaluar la calidad. También se puede validar visualmente analizando si las prendas de un cluster tienen sentido estilísticamente.
-
-**P: ¿Se actualiza automáticamente?**  
-R: No, es un proceso batch. Si se añaden nuevas prendas al catálogo, hay que re-ejecutar el script para re-clusterizar todo el dataset.
 
