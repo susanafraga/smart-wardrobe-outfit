@@ -44,7 +44,7 @@ Extraídos de repositorio de kaggle: https://www.kaggle.com/competitions/h-and-m
 
 De esa manera, si se ejecuta en local, saldrían las imágenes. 
 
-Para ver correctamente el funcionamiento de la app, visualizar el video publicado.
+Para ver correctamente el funcionamiento de la app, con las imágenes, extraer el zip SmartWardrobePPTVideo con la presentación de PPT y el video de funcionamiento de la app
 
 ### Características Extraídas
 
